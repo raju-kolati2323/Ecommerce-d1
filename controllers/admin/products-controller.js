@@ -1,30 +1,9 @@
-const { imageUploadUtil } = require("../../helpers/cloudinary");
 const Product = require("../../models/Product");
-
-const handleImageUpload = async (req, res) => {
-  try {
-    const b64 = Buffer.from(req.file.buffer).toString("base64");
-    const url = "data:" + req.file.mimetype + ";base64," + b64;
-    const result = await imageUploadUtil(url);
-
-    res.json({
-      success: true,
-      result,
-    });
-  } catch (error) {
-    console.log(error);
-    res.json({
-      success: false,
-      message: "Error occured",
-    });
-  }
-};
-
-//add a new product
+const {uploadImage} = require("../../helpers/cloudinary")
+// Add a new product
 const addProduct = async (req, res) => {
   try {
     const {
-      image,
       title,
       description,
       category,
@@ -33,13 +12,27 @@ const addProduct = async (req, res) => {
       salePrice,
       totalStock,
       averageReview,
+      image,
+      adminId
     } = req.body;
-    
 
-    // console.log(averageReview, "averageReview");
+    if (!adminId) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin ID is required",
+      });
+    }
+
+    if (!image) {
+      return res.status(400).json({
+        success: false,
+        message: "Upload Image!",
+      });
+    }
+
+    const uploadedImageUrl = await uploadImage(image);
 
     const newlyCreatedProduct = new Product({
-      image,
       title,
       description,
       category,
@@ -48,6 +41,8 @@ const addProduct = async (req, res) => {
       salePrice,
       totalStock,
       averageReview,
+      image: uploadedImageUrl,
+      adminId
     });
 
     await newlyCreatedProduct.save();
@@ -59,16 +54,24 @@ const addProduct = async (req, res) => {
     console.log(e);
     res.status(500).json({
       success: false,
-      message: "Error occured",
+      message: "Error occurred",
     });
   }
 };
 
-//fetch all products
-
+// Fetch all products
 const fetchAllProducts = async (req, res) => {
   try {
-    const listOfProducts = await Product.find({});
+    const { adminId } = req.params;
+
+    if (!adminId) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin ID is required",
+      });
+    }
+    
+    const listOfProducts = await Product.find({adminId});
     res.status(200).json({
       success: true,
       data: listOfProducts,
@@ -77,12 +80,12 @@ const fetchAllProducts = async (req, res) => {
     console.log(e);
     res.status(500).json({
       success: false,
-      message: "Error occured",
+      message: "Error occurred",
     });
   }
 };
 
-//edit a product
+// Edit a product
 const editProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -98,12 +101,12 @@ const editProduct = async (req, res) => {
       averageReview,
     } = req.body;
 
-    let findProduct = await Product.findById(id);
+    let findProduct = await Product.findById(id); // Filter by adminId
     if (!findProduct)
       return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
+      success: false,
+      message: "Product not found",
+    });
 
     findProduct.title = title || findProduct.title;
     findProduct.description = description || findProduct.description;
@@ -113,9 +116,10 @@ const editProduct = async (req, res) => {
     findProduct.salePrice =
       salePrice === "" ? 0 : salePrice || findProduct.salePrice;
     findProduct.totalStock = totalStock || findProduct.totalStock;
-    findProduct.image = image || findProduct.image;
-    findProduct.averageReview = averageReview || findProduct.averageReview;
-
+    if (image) {
+      const uploadedImageUrl = await uploadImage(image);
+      findProduct.image = uploadedImageUrl;
+    }
     await findProduct.save();
     res.status(200).json({
       success: true,
@@ -125,12 +129,12 @@ const editProduct = async (req, res) => {
     console.log(e);
     res.status(500).json({
       success: false,
-      message: "Error occured",
+      message: "Error occurred",
     });
   }
 };
 
-//delete a product
+// Delete a product
 const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -144,19 +148,18 @@ const deleteProduct = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Product delete successfully",
+      message: "Product deleted successfully",
     });
   } catch (e) {
     console.log(e);
     res.status(500).json({
       success: false,
-      message: "Error occured",
+      message: "Error occurred",
     });
   }
 };
 
 module.exports = {
-  handleImageUpload,
   addProduct,
   fetchAllProducts,
   editProduct,

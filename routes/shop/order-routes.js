@@ -1,5 +1,5 @@
 const express = require("express");
-
+const {authMiddleware} = require ('../../controllers/auth/auth-controller')
 const {
   createOrder,
   getAllOrdersByUser,
@@ -9,7 +9,7 @@ const {
 
 const router = express.Router();
 
-router.post("/create", createOrder);
+router.post("/create", authMiddleware, createOrder);
 router.post("/capture/:orderId", capturePayment);
 router.get("/list/:userId", getAllOrdersByUser);
 router.get("/details/:id", getOrderDetails);

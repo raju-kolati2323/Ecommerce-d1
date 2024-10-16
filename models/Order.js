@@ -34,6 +34,11 @@ const OrderSchema = new mongoose.Schema({
     enum: ["shippingSoon", "shipped", "outForDelivery", "delivered"],
     default: "shippingSoon",
   },
+  adminId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }
 });
 
 module.exports = mongoose.model("Order", OrderSchema);

@@ -1,13 +1,23 @@
 const Feature = require("../../models/Feature");
+const { uploadImage } = require("../../helpers/cloudinary");
 
 const addFeatureImage = async (req, res) => {
   try {
     const { image } = req.body;
 
-    // console.log(image, "image");
+    if (!image) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload the image!",
+      });
+    }
+
+    // console.log("Uploading image:", image);
+
+    const uploadedImageUrl = await uploadImage(image);
 
     const featureImages = new Feature({
-      image,
+      image: uploadedImageUrl,
     });
 
     await featureImages.save();

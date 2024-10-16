@@ -11,6 +11,11 @@ const ProductSchema = new mongoose.Schema(
     salePrice: Number,
     totalStock: Number,
     averageReview: Number,
+    adminId:{
+      type:mongoose.Schema.Types.ObjectId,
+      ref:'User',
+      required:true
+    }
   },
   { timestamps: true }
 );

@@ -96,12 +96,18 @@ const registerUser = async (req, res) => {
     }
 
     const hashPassword = await bcrypt.hash(password, 12);
+
+    let userRole = "user";
+    if (role === "admin") {
+      userRole = "admin";
+    }
+
     const newUser = new User({
       userName,
       email,
       password: hashPassword,
       mobileNumber,
-      role,
+      role: userRole,
     });
 
     await newUser.save();
@@ -160,6 +166,7 @@ const loginUser = async (req, res) => {
         id: checkUser._id,
         userName: checkUser.userName,
       },
+      token
     });
   } catch (e) {
     console.log(e);
@@ -173,7 +180,7 @@ const loginUser = async (req, res) => {
 //logout
 
 const logoutUser = (req, res) => {
-  res.clearCookie("token").json({
+  res.clearCookie("token", { httpOnly: true, secure: false }).json({
     success: true,
     message: "Logged out successfully!",
   });
@@ -181,7 +188,7 @@ const logoutUser = (req, res) => {
 
 //auth middleware
 const authMiddleware = async (req, res, next) => {
-  const token = req.cookies.token;
+  const token = req.cookies.token || req.headers.authorization?.split(" ")[1];
   if (!token)
     return res.status(401).json({
       success: false,
@@ -190,7 +197,13 @@ const authMiddleware = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, "CLIENT_SECRET_KEY");
-    req.user = decoded;
+    // console.log("Decoded token:", decoded);
+    // console.log(token)
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    req.user = user;
     next();
   } catch (error) {
     res.status(401).json({

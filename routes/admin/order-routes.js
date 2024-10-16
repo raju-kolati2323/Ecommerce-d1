@@ -1,5 +1,5 @@
 const express = require("express");
-
+const {authMiddleware} = require ('../../controllers/auth/auth-controller')
 const {
   getAllOrdersOfAllUsers,
   getOrderDetailsForAdmin,
@@ -9,9 +9,9 @@ const {
 
 const router = express.Router();
 
-router.get("/get", getAllOrdersOfAllUsers);
-router.get("/details/:id", getOrderDetailsForAdmin);
-router.put("/update/:id", updateOrderStatus);
-router.put('/updateTracking/:id', updateTrackingStatus);
+router.get("/get", authMiddleware, getAllOrdersOfAllUsers);
+router.get("/details/:id", authMiddleware, getOrderDetailsForAdmin);
+router.put("/update/:id", authMiddleware, updateOrderStatus);
+router.put('/updateTracking/:id', authMiddleware, updateTrackingStatus);
 
 module.exports = router;

@@ -1,16 +1,23 @@
 const Razorpay = require('razorpay');
 const Order = require("../../models/Order");
-const Cart = require("../../models/Cart");
+// const Cart = require("../../models/Cart");
 const Product = require("../../models/Product");
 const crypto=require('crypto');
+require('dotenv').config();
 
 const razorpayInstance = new Razorpay({
-  key_id: "rzp_test_N2JZTugUiv8bEs",
-  key_secret: "xcf3xOloe7YjsUGh8ycyesdo",
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
 const createOrder = async (req, res) => {
   try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        message: "User is not authenticated",
+      });
+    }
     const {
       userId,
       cartItems,
@@ -24,12 +31,34 @@ const createOrder = async (req, res) => {
       cartId,
     } = req.body;
 
+    if (!userId || !cartItems || !addressInfo || !totalAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Required fields are missing!",
+      });
+    }
+
     if (paymentMethod !== 'razorpay') {
       return res.status(400).json({
         success: false,
         message: "Invalid payment method",
       });
     }
+
+    let adminId;
+    if (cartItems && cartItems.length > 0) {
+      const firstProductId = cartItems[0].productId;
+      const product = await Product.findById(firstProductId);
+      if (product) {
+        adminId = product.adminId;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Product not found!",
+        });
+      }
+    }
+
     const options = {
       amount: totalAmount * 100,
       currency: "USD",
@@ -42,21 +71,26 @@ const createOrder = async (req, res) => {
           message: "Error while creating Razorpay order",
         });
       }
+
+      // const adminId = req.user._id;
       const newlyCreatedOrder = new Order({
         userId,
         cartId,
         cartItems,
         addressInfo,
-        orderStatus,
+        orderStatus:"pending",
         paymentMethod,
-        paymentStatus,
+        paymentStatus:"pending",
         totalAmount,
-        orderDate,
+        orderDate:new Date(),
         orderUpdateDate,
         paymentId: "",
-        payerId: ""
+        payerId: "",
+        adminId:adminId
       });
+
       await newlyCreatedOrder.save();
+      
       res.status(201).json({
         success: true,
         approvalURL: order.short_url,
@@ -79,7 +113,7 @@ const capturePayment = async (req, res) => {
 
   // Generate the signature expected from Razorpay
   const generatedSignature = crypto
-    .createHmac('sha256', 'xcf3xOloe7YjsUGh8ycyesdo') //Razorpay secret key
+    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET) //Razorpay secret key
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest('hex');
 
@@ -108,7 +142,7 @@ const capturePayment = async (req, res) => {
 const getAllOrdersByUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const orders = await Order.find({ userId });
+    const orders = await Order.find({ userId }).lean();
     if (!orders.length) {
       return res.status(404).json({
         success: false,
