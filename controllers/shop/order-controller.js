@@ -47,7 +47,7 @@ const createOrder = async (req, res) => {
 
     let adminId;
     if (cartItems && cartItems.length > 0) {
-      const firstProductId = cartItems[0].productId;
+      const firstProductId = cartItems[0].productId; //assume all the products are of same admin
       const product = await Product.findById(firstProductId);
       if (product) {
         adminId = product.adminId;
@@ -106,6 +106,8 @@ const createOrder = async (req, res) => {
     });
   }
 };
+
+
 const capturePayment = async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
   const {orderId} = req.params;

@@ -35,7 +35,7 @@ const OrderSchema = new mongoose.Schema({
     default: "shippingSoon",
   },
   adminId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: [mongoose.Schema.Types.ObjectId],
     ref: 'User',
     required: true
   }
