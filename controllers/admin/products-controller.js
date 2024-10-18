@@ -13,10 +13,12 @@ const addProduct = async (req, res) => {
       totalStock,
       averageReview,
       image,
+      categoryImage, // Optional
+      brandImage, // Optional
       adminId
     } = req.body;
 
-    if (!adminId) {
+    if (!adminId|| !category || !brand) {
       return res.status(400).json({
         success: false,
         message: "Admin ID is required",
@@ -31,6 +33,14 @@ const addProduct = async (req, res) => {
     }
 
     const uploadedImageUrl = await uploadImage(image);
+    let uploadedCategoryImageUrl, uploadedBrandImageUrl;
+
+    if (categoryImage) {
+      uploadedCategoryImageUrl = await uploadImage(categoryImage);
+    }
+    if (brandImage) {
+      uploadedBrandImageUrl = await uploadImage(brandImage);
+    }
 
     const newlyCreatedProduct = new Product({
       title,
@@ -42,6 +52,8 @@ const addProduct = async (req, res) => {
       totalStock,
       averageReview,
       image: uploadedImageUrl,
+      categoryImage: uploadedCategoryImageUrl || null,
+      brandImage: uploadedBrandImageUrl || null,
       adminId
     });
 
@@ -99,6 +111,8 @@ const editProduct = async (req, res) => {
       salePrice,
       totalStock,
       averageReview,
+      categoryImage,
+      brandImage,
     } = req.body;
 
     let findProduct = await Product.findById(id); // Filter by adminId
@@ -116,10 +130,20 @@ const editProduct = async (req, res) => {
     findProduct.salePrice =
       salePrice === "" ? 0 : salePrice || findProduct.salePrice;
     findProduct.totalStock = totalStock || findProduct.totalStock;
+    
     if (image) {
       const uploadedImageUrl = await uploadImage(image);
       findProduct.image = uploadedImageUrl;
     }
+    if (categoryImage) {
+      const uploadedCategoryImageUrl = await uploadImage(categoryImage);
+      findProduct.categoryImage = uploadedCategoryImageUrl;
+    }
+    if (brandImage) {
+      const uploadedBrandImageUrl = await uploadImage(brandImage);
+      findProduct.brandImage = uploadedBrandImageUrl;
+    }
+
     await findProduct.save();
     res.status(200).json({
       success: true,
