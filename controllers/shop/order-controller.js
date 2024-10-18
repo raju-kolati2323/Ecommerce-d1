@@ -18,6 +18,7 @@ const createOrder = async (req, res) => {
         message: "User is not authenticated",
       });
     }
+
     const {
       userId,
       cartItems,
@@ -45,12 +46,13 @@ const createOrder = async (req, res) => {
       });
     }
 
-    let adminId;
-    if (cartItems && cartItems.length > 0) {
-      const firstProductId = cartItems[0].productId; //assume all the products are of same admin
-      const product = await Product.findById(firstProductId);
+    const adminIds = new Set(); // Use a Set to collect unique admin IDs
+
+    // Gather unique adminIds from the cartItems
+    for (const item of cartItems) {
+      const product = await Product.findById(item.productId);
       if (product) {
-        adminId = product.adminId;
+        adminIds.add(product.adminId);
       } else {
         return res.status(400).json({
           success: false,
@@ -64,6 +66,7 @@ const createOrder = async (req, res) => {
       currency: "USD",
       receipt: `order_${Date.now()}`,
     };
+
     razorpayInstance.orders.create(options, async (error, order) => {
       if (error) {
         return res.status(500).json({
@@ -72,25 +75,24 @@ const createOrder = async (req, res) => {
         });
       }
 
-      // const adminId = req.user._id;
       const newlyCreatedOrder = new Order({
         userId,
         cartId,
         cartItems,
         addressInfo,
-        orderStatus:"pending",
+        orderStatus: "pending",
         paymentMethod,
-        paymentStatus:"pending",
+        paymentStatus: "pending",
         totalAmount,
-        orderDate:new Date(),
+        orderDate: new Date(),
         orderUpdateDate,
         paymentId: "",
         payerId: "",
-        adminId:adminId
+        adminId: Array.from(adminIds) // Store unique adminIds
       });
 
       await newlyCreatedOrder.save();
-      
+
       res.status(201).json({
         success: true,
         approvalURL: order.short_url,
@@ -106,6 +108,7 @@ const createOrder = async (req, res) => {
     });
   }
 };
+
 
 
 const capturePayment = async (req, res) => {
