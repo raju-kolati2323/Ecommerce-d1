@@ -14,7 +14,7 @@ const shopReviewRouter = require("./routes/shop/review-routes");
 require("dotenv").config();
 
 const commonFeatureRouter = require("./routes/common/feature-routes");
-
+//innowide server
 mongoose
   .connect(
     "mongodb+srv://innowidetech:innowideecommerce1@ecommercecluster0.abfxu.mongodb.net/?retryWrites=true&w=majority&appName=EcommerceCluster0"
